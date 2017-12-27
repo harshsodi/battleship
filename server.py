@@ -2,7 +2,7 @@ import socket,thread,sys,json
 playerlist = []
 serversocket = socket.socket()
 hostname = socket.gethostname()
-port = 764
+port = 7064
 
 try:
     serversocket.bind((hostname,port))
@@ -18,16 +18,11 @@ print " server running..."
 
 '''
 
-class player :
+class Player :
 	name = None
 	socketDesc = None
 
-class game:
-	def __init__(self, socketDesc, name) :
-		self.name = name
-		self.socketDesc = socketDesc
-
-class game:
+class Game:
 	player1 = None
 	player2 = None
 	gameId = None
@@ -47,40 +42,35 @@ class game:
 		Update board if block is part of ship
 		Return True if attack successful and False otherwise
 		'''
+	
+	
     #end game
 
 def sendMsg(msg,fromclient,toclient):
 
-
     pass
     #end sendmsg
-
-
 
 def cpu(client,msgtype,msgdata):
 
     if msgtype == "register":
-
         name = msgdata
         registerClient(client,name)
-
-
     pass
     #end cup
 
 def registerClient(client,name):
-
-"""
+    
+	"""
     -will make a new object of the Player class and will append to the playerList.
     -to maintain the list of the online players.
-"""
-    player = Player(client,name)
-
-    playerlist.append(player)
+	"""
+	player = Player(client,name)
+	playerlist.append(player)
 
 def handleClient(client):
 
-"""
+	"""
     -will receive the message from the client and will send it to the cpu for parsing and further process
     -msg is received as a json. so message parsing is mendetory
 
@@ -96,22 +86,19 @@ def handleClient(client):
         ->data: {
                     "name": <name of the client>
                 }
+	"""
 
+	data = client.recv()
+	message = json.loads(data)
+	msgtype = message.type
+	msgdata = message.data["name"]
+	cpu(client,msgtype,msgdata)
 
-"""
-
-    data = client.recv()
-    message = json.loads(data)
-    msgtype = message.type
-    msgdata = message.data["name"]
-    cpu(client,msgtype,msgdata)
-
-    return
-    #end handleClient 
+	return
+	#end handleClient 
 
 
 serversocket.listen(5)
-
 
 """
 Receiver:
@@ -119,8 +106,12 @@ Receiver:
 
 """
 
+def printUsers() :
+    for each in playerlist :
+        print each.name
+
 while True:
-    client, address = serversocket.accept()
-    thread.start_new_thread(handleClient,(client,))
+	client, address = serversocket.accept()
+	thread.start_new_thread(handleClient,(client,))
 
     #end reciever
