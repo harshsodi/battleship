@@ -18,17 +18,35 @@ print " server running..."
 
 '''
 
+class player :
+	name = None
+	socketDesc = None
+
+	def __init__(self, socketDesc, name) :
+		self.name = name
+		self.socketDesc = socketDesc
+
 class game:
+	player1 = None
+	player2 = None
+	gameId = None
 
+	shipsPlayer1 = None
+	shipsPlayer2 = None
+	attackedBLocksPlayer1 = None
+	attackedBLocksPlayer2 = None
 
+	def __init__(self, player1, player2) : #player objects
+		self.player1 = player1
+		self.player2 = player2
 
+	def attack(self, victim, block) :
+		'''
+		Drop bomb on block of victim's board
+		Update board if block is part of ship
+		Return True if attack successful and False otherwise
+		'''
     #end game
-
-
-#hashmap here
-
-#end hashmap
-
 
 def sendMsg(msg,fromclient,toclient):
 
