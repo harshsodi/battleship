@@ -1,3 +1,22 @@
+import socket,thread,sys
+clients = []
+serversocket = socket.socket()
+hostname = socket.hostname()
+port = 764
+
+try:
+    serversocket.bind((hostname,port))
+except:
+    print "server could not start"
+
+
+print " server running..."
+
+
+'''
+    ((desctiptor,name),(desctiptor,name),(desctiptor,name),(desctiptor,name),(desctiptor,name))
+
+'''
 
 class game:
 
@@ -35,6 +54,7 @@ def handleClient():
 
 
 while True:
+
 
 
 

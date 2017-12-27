@@ -1,3 +1,1 @@
-# Ba Ba Battleship #
-
-Server - Client Battleship.
+# battleship
