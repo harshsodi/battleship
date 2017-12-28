@@ -1,4 +1,5 @@
 import socket,thread,sys,json
+
 playerlist = []
 serversocket = socket.socket()
 hostname = socket.gethostname()
@@ -12,7 +13,6 @@ except:
 
 print " server running..."
 
-
 '''
     ((desctiptor,name),(desctiptor,name),(desctiptor,name),(desctiptor,name),(desctiptor,name))
 
@@ -21,6 +21,8 @@ print " server running..."
 class Player :
 	name = None
 	socketDesc = None
+
+    #end player
 
 class Game:
 	player1 = None
@@ -42,8 +44,7 @@ class Game:
 		Update board if block is part of ship
 		Return True if attack successful and False otherwise
 		'''
-	
-	
+        
     #end game
 
 def sendMsg(msg,fromclient,toclient):
@@ -56,7 +57,24 @@ def cpu(client,msgtype,msgdata):
     if msgtype == "register":
         name = msgdata
         registerClient(client,name)
-    pass
+    
+    elif msgtype == "sendChallenge" :
+        frm = msgdata['from'] #a descriptor
+        to = msgdata['to'] #a descriptor
+        dictData = {
+                        "type" : "sendChallenge",
+                        "data" : {
+                            "from" : frm
+                        }
+                    }
+        jsonData = json.dumps(discData)
+        sendMsg(jsonData, frm, to)
+        
+    elif msgtype == "acceptChallenge" :
+        
+        
+    elif msgtype == "declineChallenge" :
+        pass
     #end cup
 
 def registerClient(client,name):
@@ -86,14 +104,15 @@ def handleClient(client):
         ->data: {
                     "name": <name of the client>
                 }
+        
 	"""
 
 	data = client.recv()
 	message = json.loads(data)
-	msgtype = message.type
-	msgdata = message.data["name"]
+	msgtype = message['type']
+	msgdata = message['data']
 	cpu(client,msgtype,msgdata)
-
+    
 	return
 	#end handleClient 
 
