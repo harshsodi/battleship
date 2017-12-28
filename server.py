@@ -188,23 +188,7 @@ def cpu(player,msgtype,msgdata):
         game = gamebox[player]
         sendMsg(jsonMsg, game.player1)
         sendMsg(jsonMsg, game.player2)
-
-    #end cpu
-
-def registerClient(client,name):
-    
-    """
-    -will make a new object of the Player class and will append to the playerList.
-    -to maintain the list of the online players.
-    """
-    player = Player(client,name)
-    #playerlist.append(player)
-    playerlist[name] = player
-    return player
-
-def cpu(player,msgtype,msgdata):
-
-    if msgtype == "register":
+        if msgtype == "register":
         """
         "Register":
         -register the client to the server
@@ -240,9 +224,19 @@ def cpu(player,msgtype,msgdata):
 
             sendMsg(msgforwinner , winner)
             sendMsg(msgforloser , loser)
-        
-
+    
     #end cpu
+
+def registerClient(client,name):
+    
+    """
+    -will make a new object of the Player class and will append to the playerList.
+    -to maintain the list of the online players.
+    """
+    player = Player(client,name)
+    #playerlist.append(player)
+    playerlist[name] = player
+    return player
 
 def handleClient(client):
 
