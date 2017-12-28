@@ -25,39 +25,34 @@ print " server running..."
 '''
 
 class Player :
-	
+    
     def __init__(self, socketDesc, name) :
         self.name = name
         self.socketDesc = socketDesc
     #end player
 
-class Game:	
-	#shipsPlayer1 = None
-	#shipsPlayer2 = None
-	#attackedBLocksPlayer1 = None
-	shipsPlayers = []
-	#shipsPlayer = None
-	attackedBLocksPlayer1 = []
-	#attackedBLocksPlayer2 = None
+class Game:    
+    #shipsPlayer1 = None
+    #shipsPlayer2 = None
+    #attackedBLocksPlayer1 = None
+    shipsPlayers = []
+    #shipsPlayer = None
+    attackedBLocksPlayer1 = []
+    #attackedBLocksPlayer2 = None
 
-	def __init__(self, player1, player2) : #player objects
-		self.player1 = player1
-		self.player2 = player2
+    def __init__(self, player1, player2) : #player objects
+        self.player1 = player1
+        self.player2 = player2
 
-
-    def checkResult():
-
+    def checkResult(self) :
         if len(self.shipsPlayer1) == len(self.attackedBLocksPlayer1):
             return self.player1 , self.player2
         if len(self.shipsPlayer2) == len(self.attackedBLocksPlayer2):
             return self.player2 , self.player1
 
-        return None
+        return None , None
 
-	def attack(self, attacker, block) :
-		
-        
-
+    def attack(self, attacker, block) :       
         themap = None
         theattackedmap = None
         if attacker == self.player1:
@@ -84,16 +79,16 @@ class Game:
 
         
 
-		Drop bomb on block of victim's board
-		Update board if block is part of ship
-		Return True if attack successful and False otherwise
-		'''
+        Drop bomb on block of victim's board
+        Update board if block is part of ship
+        Return True if attack successful and False otherwise
+        '''
     
     def setBoats() :
         pass
     #end game
-	
-	
+    
+    
 #end Game
 
 def startNewGame(player1, player2) :
@@ -183,8 +178,8 @@ def cpu(player,msgtype,msgdata):
         
         #send message on both sides to abort the game and return to initial stage
         dictMsg = {
-            'type' = 'abortGame',
-            'data' = {
+            'type' : 'abortGame',
+            'data' : {
 
             }
         }
@@ -230,7 +225,9 @@ def cpu(player,msgtype,msgdata):
         """
         game = gamebox[player]
         game.attack(player,msgdata["cordinates"])
-        if winner , loser = game.checkResult():
+        
+        winner , loser = game.checkResult()
+        if winner and loser:
 
             msgcontainerforwinner = {"type":"verdict","data":{"result:":True}}
             msgcontainerforloser = {"type":"verdict","data":{"result:":False}}
@@ -243,13 +240,13 @@ def cpu(player,msgtype,msgdata):
 
             sendMsg(msgforwinner , winner)
             sendMsg(msgforloser , loser)
-        else:
+        
 
     #end cpu
 
 def handleClient(client):
 
-	"""
+    """
     -will receive the message from the client and will send it to the cpu for parsing and further process
     -msg is received as a json. so message parsing is mendetory
 
@@ -260,11 +257,11 @@ def handleClient(client):
 
     """    
     while True:
-    	data = client.recv()
-    	message = json.loads(data)
-    	msgtype = message["type"]
-    	msgdata = message["data"]
-    	
+        data = client.recv()
+        message = json.loads(data)
+        msgtype = message["type"]
+        msgdata = message["data"]
+        
         if "name" in client:
             cpu(client,msgtype,msgdata)
         else:
@@ -274,8 +271,8 @@ def handleClient(client):
                 sys.exit(1)
 
             client = cpu(client,msgtype,msgdata)
-	
-	#end handleClient 
+    
+    #end handleClient 
 
 
 serversocket.listen(5)
@@ -292,8 +289,8 @@ def printUsers() :
         print each.name
 
 while True:
-	client, address = serversocket.accept()
-	thread.start_new_thread(handleClient,(client,))
+    client, address = serversocket.accept()
+    thread.start_new_thread(handleClient,(client,))
 
     #end reciever
 
