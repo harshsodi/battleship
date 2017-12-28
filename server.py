@@ -32,14 +32,11 @@ class Player :
     #end player
 
 class Game:    
-    #shipsPlayer1 = None
-    #shipsPlayer2 = None
-    #attackedBLocksPlayer1 = None
-    shipsPlayers = []
-    #shipsPlayer = None
+    shipsPlayer1 = []
+    shipsPlayer2 = []
     attackedBLocksPlayer1 = []
-    #attackedBLocksPlayer2 = None
-
+    attackedBLocksPlayer1 = []
+    
     def __init__(self, player1, player2) : #player objects
         self.player1 = player1
         self.player2 = player2
@@ -73,19 +70,21 @@ class Game:
         '''
         victim -> which player will get affected by the attack. (Opponent of the player which had turn)
                -> Player object
-
         block -> tupple of the cordinates of the attack (x,y)
-
-
-        
-
         Drop bomb on block of victim's board
         Update board if block is part of ship
         Return True if attack successful and False otherwise
         '''
     
-    def setBoats() :
-        pass
+    def setBoats(player, boatCoords) :
+        '''
+        player : object
+        boatCoords : [(x,y),(x,y),(x,y), ...]
+        '''
+        if player == self.player1 :
+            self.shipsPlayer1 = boatCoords
+        else :
+            self.shipsPlayer2 = boatCoords
     #end game
     
     
