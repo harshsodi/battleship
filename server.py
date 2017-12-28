@@ -76,15 +76,16 @@ class Game:
         Return True if attack successful and False otherwise
         '''
     
-    def setBoats(player, boatCoords) :
+    def setBoats(self, player, boatCoords) :
         '''
         player : object
-        boatCoords : [(x,y),(x,y),(x,y), ...]
+        boatCoords : [[(x,y),(x,y),(x,y), ...],[(x,y),(x,y),(x,y), ...]]
         '''
         if player == self.player1 :
             self.shipsPlayer1 = boatCoords
         else :
             self.shipsPlayer2 = boatCoords
+    
     #end game
     
     
@@ -102,8 +103,15 @@ def sendMsg(msg, toclient):
 def cpu(player,msgtype,msgdata):
 
     if msgtype == "register":
+        """
+        "Register":
+        -register the client to the server
+        ->data: {
+                    "name": <name of the client>
+                }
+        """
         name = msgdata
-        registerClient(client,name)
+        return registerClient(player,name)
     
     elif msgtype == "sendChallenge" :
         '''
@@ -187,27 +195,29 @@ def cpu(player,msgtype,msgdata):
         game = gamebox[player]
         sendMsg(jsonMsg, game.player1)
         sendMsg(jsonMsg, game.player2)
-        if msgtype == "register":
-        """
-        "Register":
-        -register the client to the server
-        ->data: {
-                    "name": <name of the client>
-                }
-        """
-        name = msgdata
-        return registerClient(player,name)
    
+    elif msgtype == "setBoats" : #arranging done, now register my boat positions
+        '''
+        Message type : data : {
+                            coords : [[],[]]
+                        }
+        '''
+        data = json.loads(msgdata)
+        boatcoords = data[coords]
+        
+        game = gamebox[player]
+        game.setBoats(player, boatcoords)
+
     elif msgtype == "attack":
         """
         "msgtype":"attack":
             a player will attack on the perticular cordinates (x,y).
         
-        "msgdata:":{"cordinates":(x,y)}
+        "msgdata:":{"coordinates":(x,y)}
 
         """
         game = gamebox[player]
-        game.attack(player,msgdata["cordinates"])
+        game.attack(player,msgdata["coordinates"])
         
         winner , loser = game.checkResult()
         if winner and loser:
@@ -223,7 +233,21 @@ def cpu(player,msgtype,msgdata):
 
             sendMsg(msgforwinner , winner)
             sendMsg(msgforloser , loser)
-    
+
+        else : #send coordinates to client as well
+            dictData = {
+                'type' = 'updateAttackCoords',
+                'coordinates' : msgdata['coordinates']
+            }
+            jsonData = json.dumps(dictData)
+
+            game = gamebox[player]
+            if player == game.player1 :
+                sendMsg(jsonData, game.player2)
+
+            if player == game.player2 :
+                sendMsg(jsonData, game.player2)
+
     #end cpu
 
 def registerClient(client,name):
