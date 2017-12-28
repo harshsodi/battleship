@@ -148,7 +148,7 @@ def cpu(player,msgtype,msgdata):
             sendMsg(msgforloser , loser)
         else:
 
-    #end cup
+    #end cpu
 
 def handleClient(client):
 
