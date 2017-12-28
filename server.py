@@ -67,7 +67,7 @@ def cpu(player,msgtype,msgdata):
     elif msgtype == "sendChallenge" :
         '''
         expected message format : data :  {
-                                            'to', object
+                                            'to' : name
                                             }
         '''
         frm = player.name #name
@@ -142,7 +142,7 @@ def cpu(player,msgtype,msgdata):
             }
         }
         jsonMsg = dictMsg.dumps()
-        
+
         game = gamebox[player]
         sendMsg(jsonMsg, game.player1)
         sendMsg(jsonMsg, game.player2)
