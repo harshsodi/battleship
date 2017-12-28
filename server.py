@@ -19,20 +19,20 @@ print " server running..."
 '''
 
 class Player :
-	name = None
-	socketDesc = None
+	
+    def __init__(self, socketDesc, name) :
+        self.name = name
+        self.socketDesc = socketDesc
+        return self
 
     #end player
 
 class Game:
-	player1 = None
-	player2 = None
-	gameId = None
-
-	shipsPlayer1 = None
-	shipsPlayer2 = None
-	attackedBLocksPlayer1 = None
-	attackedBLocksPlayer2 = None
+	
+	#shipsPlayer1 = None
+	#shipsPlayer2 = None
+	#attackedBLocksPlayer1 = None
+	#attackedBLocksPlayer2 = None
 
 	def __init__(self, player1, player2) : #player objects
 		self.player1 = player1
@@ -44,38 +44,110 @@ class Game:
 		Update board if block is part of ship
 		Return True if attack successful and False otherwise
 		'''
-        
+    
+    def setBoats() :
+        pass
     #end game
 
-def sendMsg(msg,fromclient,toclient):
+def startNewGame(player1, player2) :
+    game = Game(player1, player2)
+    return game
+
+def sendMsg(msg, toclient):
 
     pass
     #end sendmsg
 
-def cpu(client,msgtype,msgdata):
+def cpu(player,msgtype,msgdata):
 
     if msgtype == "register":
         name = msgdata
         registerClient(client,name)
     
     elif msgtype == "sendChallenge" :
-        frm = msgdata['from'] #a descriptor
-        to = msgdata['to'] #a descriptor
+        '''
+        expected message format : data :  {
+                                            'to', object
+                                            }
+        '''
+        frm = player.name #name
+        to = playerlist[msgdata['to']] #an object
+
+        #message the opponent about the incoming challenge
         dictData = {
                         "type" : "sendChallenge",
                         "data" : {
-                            "from" : frm
+                            "from" : frm #name
                         }
                     }
-        jsonData = json.dumps(discData)
-        sendMsg(jsonData, frm, to)
+        jsonData = json.dumps(dictData)
+        sendMsg(jsonData, to)
         
     elif msgtype == "acceptChallenge" :
+        '''
+        expected message format : data : {
+                                        'player1' : name,
+                                        'player2' : name  
+                                    }
+        '''
+        data = json.loads(msgdata)
+        player1 = playerlist[data['player1']] #objeect
+        player2 = playerlist[data['player2']]   #object
         
+        #register new game
+        game = startNewGame(player1, player2)
+        gamebox[player1] = game
+        gamebox[player2] = game
+
+        #message the players to begin the game
+        dictData = {
+                        'type' : 'startGame',
+                        'data' : { 
+                            
+                        }
+                    }
+        jsonData = json.dumps(dictData)
+        sendMsg(jsonData, player1)
+        sendMsg(jsonData, player2)
         
     elif msgtype == "declineChallenge" :
-        pass
-    #end cup
+        '''
+        expected message format : data : {
+                                        'challenger' : name 
+                                    }
+        '''
+        data = json.loads(msgdata)
+        challenger = playerlist[data['challenger']]
+
+        #message the challenger if his challenge is declined
+        dictData = { 
+                        'type' : 'challengeDeclined',
+                        'data' : { }
+                    }
+        jsonData = dictData.dumps()
+        sendMsg(jsonData, challenger)
+
+    elif msgtype == 'abortGame' :
+        '''
+        expected message format : data : {
+                                            
+                                            }
+        '''
+        
+        #send message on both sides to abort the game and return to initial stage
+        dictMsg = {
+            'type' = 'abortGame',
+            'data' = {
+
+            }
+        }
+        jsonMsg = 
+
+        game = gamebox[player]
+        sendMsg(jsonMsg, game.player1)
+        sendMsg(jsonMsg, game.player2)
+
+    #end cpu
 
 def registerClient(client,name):
     
