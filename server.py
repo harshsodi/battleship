@@ -90,7 +90,7 @@ def cpu(player,msgtype,msgdata):
                                         'player2' : name  
                                     }
         '''
-        data = json.loads(msgdata)
+        data = msgdata
         player1 = playerlist[data['player1']] #objeect
         player2 = playerlist[data['player2']]   #object
         
@@ -116,7 +116,7 @@ def cpu(player,msgtype,msgdata):
                                         'challenger' : name 
                                     }
         '''
-        data = json.loads(msgdata)
+        data = msgdata
         challenger = playerlist[data['challenger']]
 
         #message the challenger if his challenge is declined
@@ -141,8 +141,8 @@ def cpu(player,msgtype,msgdata):
 
             }
         }
-        jsonMsg = 
-
+        jsonMsg = dictMsg.dumps()
+        
         game = gamebox[player]
         sendMsg(jsonMsg, game.player1)
         sendMsg(jsonMsg, game.player2)
