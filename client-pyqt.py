@@ -70,15 +70,21 @@ class battle(QtGui.QWidget):
         #print "drawing now xD" + str(self.myShips)
 
         #if opponent's turn I fade to white
-        if self.turn :
-            fade = 140
-        else:
-            fade = 255
+        fade = 140
+        try :
+            if not self.turn :
+                fade = 255
+            else:
+                fade = 140
+        except :
+            print ""
 
         #draw my board
         for x in range(10) :
             for y in range(10) :
                 qp.setBrush(QtGui.QColor(150, 170, 255,fade))
+                pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
+                qp.setPen(pen)
                 
                 flag = True
                 if [x,y] in self.myAttackedBlocks :
@@ -88,15 +94,21 @@ class battle(QtGui.QWidget):
                 if flag :
                     for ship in self.myShips :
                         if [x,y] in ship :
+                            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+                            qp.setPen(pen)
                             qp.setBrush(QtGui.QColor(255,255,255,fade))
                             break
                     
                 qp.drawRect(x*50,y*50, 50,50)
 
-        if self.turn :
-            fade = 255
-        else:
-            fade = 140
+        fade = 255
+        try :
+            if self.turn :
+                fade = 255
+            else:
+                fade = 140
+        except : 
+            print ""
 
         #draw opponent board
         for x in range(10) :
@@ -108,6 +120,25 @@ class battle(QtGui.QWidget):
                 if [x,y] in self.opponentAttackedBlocks :
                     qp.setBrush(QtGui.QColor(255,100,100,fade))
                 qp.drawRect((x+11)*50,y*50, 50,50)
+        
+        if not self.turn :
+            opponentsString = "OPPONENT'S"
+            turnString = "TURN"
+            pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
+            qp.setPen(pen)
+            qp.setBrush(QtGui.QColor(255,0,0))
+            for x in range(len(opponentsString)) :
+                qp.drawText((x+11)*50+25, 4*50-25, opponentsString[x])
+            for x in range(len(turnString)) :
+                qp.drawText((x+11)*50+25, 5*50-25, turnString[x])
+
+        else :
+            turnString = "YOUR TURN"
+            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+            qp.setPen(pen)
+            qp.setBrush(QtGui.QColor(255,0,0))
+            for x in range(len(turnString)) :
+                qp.drawText((x)*50+25, 4*50-25, turnString[x])
         
 
     def mousePressEvent(self, event):
