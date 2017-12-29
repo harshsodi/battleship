@@ -1,5 +1,6 @@
 from PyQt4 import QtGui, QtCore
 import socket,sys,thread,json
+import ctypes
 
 ships = None
 name = None
@@ -25,6 +26,7 @@ class battle(QtGui.QWidget):
         self.opponentAttackedBlocks = []
         self.turn = False
         self.mouseOn = [9999,9999]
+        self.showMaximized()
 
     def resetMouseOn(slef) :
         self.mouseOn = [9999,9999]
@@ -45,9 +47,9 @@ class battle(QtGui.QWidget):
         
     def initUI(self):      
 
-        self.setGeometry(50, 50, 1050, 500)
+        self.setGeometry(0, 0, 1200, 600)
         self.setWindowTitle('Battle captains ..!')
-        self.show()
+        self.showMaximized()
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -105,6 +107,15 @@ class battle(QtGui.QWidget):
                     qp.setBrush(QtGui.QColor(255,100,100,fade))
                 qp.drawRect((x+11)*50,y*50, 50,50)
         
+        if not self.turn :
+            string1 = "OPPONENT'S"
+            string2 = "TURN"
+            pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.SolidLine)
+            qp.setBrush(QtGui.QColor(255,0,0))
+            for x in range(len(string1)) :
+                qp.drawText((x+11)*50+25, 4*50-25, string1[x])
+            for x in range(len(string2)) :
+                qp.drawText((x+11)*50+25, 5*50-25, string2[x])
 
     def mousePressEvent(self, event):
         """
@@ -411,9 +422,13 @@ class Game(QtGui.QMainWindow):
             if name == msgdata['turn'] :
                 self.battlewidget.initTurn()
 
-            self.resize(1050,500)
-            self.battlewidget.show()            
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            dims = [user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)]
 
+            self.setGeometry(10, 20, 1200, 600)
+            self.resize(dims[0],dims[1])
+            self.battlewidget.show()            
 
             # third module
 
