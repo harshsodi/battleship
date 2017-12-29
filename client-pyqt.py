@@ -1,5 +1,7 @@
 from PyQt4 import QtGui, QtCore
-import socket,sys,threading,json
+import socket,sys,thread,json
+import ctypes
+
 
 ships = None
 name = None
@@ -28,7 +30,7 @@ class battle(QtGui.QWidget):
         self.opponentAttackedBlocks = []
         self.turn = False
         self.mouseOn = [9999,9999]
-
+        self.showMaximized()
 
     def resetMouseOn(slef) :
         self.mouseOn = [9999,9999]
@@ -49,9 +51,9 @@ class battle(QtGui.QWidget):
         
     def initUI(self):      
 
-        self.setGeometry(50, 50, 1050, 500)
+        self.setGeometry(0, 0, 1200, 600)
         self.setWindowTitle('Battle captains ..!')
-        self.show()
+        self.showMaximized()
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -70,15 +72,21 @@ class battle(QtGui.QWidget):
         #print "drawing now xD" + str(self.myShips)
 
         #if opponent's turn I fade to white
-        if self.turn :
-            fade = 140
-        else:
-            fade = 255
+        fade = 140
+        try :
+            if not self.turn :
+                fade = 255
+            else:
+                fade = 140
+        except :
+            print ""
 
         #draw my board
         for x in range(10) :
             for y in range(10) :
                 qp.setBrush(QtGui.QColor(150, 170, 255,fade))
+                pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
+                qp.setPen(pen)
                 
                 flag = True
                 if [x,y] in self.myAttackedBlocks :
@@ -88,15 +96,21 @@ class battle(QtGui.QWidget):
                 if flag :
                     for ship in self.myShips :
                         if [x,y] in ship :
+                            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+                            qp.setPen(pen)
                             qp.setBrush(QtGui.QColor(255,255,255,fade))
                             break
                     
                 qp.drawRect(x*50,y*50, 50,50)
 
-        if self.turn :
-            fade = 255
-        else:
-            fade = 140
+        fade = 255
+        try :
+            if self.turn :
+                fade = 255
+            else:
+                fade = 140
+        except : 
+            print ""
 
         #draw opponent board
         for x in range(10) :
@@ -109,7 +123,25 @@ class battle(QtGui.QWidget):
                     qp.setBrush(QtGui.QColor(255,100,100,fade))
                 qp.drawRect((x+11)*50,y*50, 50,50)
         
+        if not self.turn :
+            opponentsString = "OPPONENT'S"
+            turnString = "TURN"
+            pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
+            qp.setPen(pen)
+            qp.setBrush(QtGui.QColor(255,0,0))
+            for x in range(len(opponentsString)) :
+                qp.drawText((x+11)*50+25, 4*50-25, opponentsString[x])
+            for x in range(len(turnString)) :
+                qp.drawText((x+11)*50+25, 5*50-25, turnString[x])
 
+        else :
+            turnString = "YOUR TURN"
+            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+            qp.setPen(pen)
+            qp.setBrush(QtGui.QColor(255,0,0))
+            for x in range(len(turnString)) :
+                qp.drawText((x)*50+25, 4*50-25, turnString[x])
+            
     def mousePressEvent(self, event):
         """
         mouse clicks events
@@ -147,6 +179,19 @@ class battle(QtGui.QWidget):
         self.setMouseOn(x,y)
         self.update()
 
+    def closeEvent(self, event) :
+        #when a user closes window
+        dictData = {
+            'type' : 'iAmOut',
+            'data' : {
+
+            }
+        }
+        jsonData = json.loads(dictData)
+        mysocket.send(jsonData)
+
+        event.ignore()
+
     def attackOnMe(self, coords) :
         print "i am attacked"
         print self.myShips
@@ -158,7 +203,8 @@ class battle(QtGui.QWidget):
               
               #  for coord in ship :
                #     self.myAttackedBlocks.remove(coord)
-        print self.myAttackedBlocks
+
+                print self.myAttackedBlocks
         self.turn = True
         self.update()
 
@@ -166,12 +212,19 @@ class battle(QtGui.QWidget):
         for ship in self.opponentShips :
             if coords in ship :
                 self.opponentAttackedBlocks.append(coords)
-        self.turn = False
-            #if set(ship).issubset(set(self.opponentAttackedBlocks)) : #ship sunk
-             #   self.opponentShips.remove(ship)
-              #  for coord in ship :
-               #     self.opponentAttackedBlocks.remove(coord)
+            
+            #check if ship has sunl
+            sunk = True #sunk
+            for coord in ship :
+                if coord not in self.opponentAttackedBlocks :
+                    sunk = False #not sunk
+                    break
+            if sunk :
+                self.opponentShips.remove(ship)
+                for coord in ship :
+                    self.opponentAttackedBlocks.remove(coord)
 
+            self.turn = False
         self.update()
 
     def win(self) :
@@ -342,10 +395,6 @@ class Game(QtGui.QMainWindow):
         self.battlewidget.hide()
         #print "adding last part"
 
-
-
-
-        #self.container.addWidget(self.selectplayerwidget)
         self.container.addWidget(self.selectBoatWidget)
         self.container.addWidget(self.battlewidget)
 
@@ -506,11 +555,16 @@ class Game(QtGui.QMainWindow):
             if name == msgdata['turn'] :
                 self.battlewidget.initTurn()
 
-            self.resize(1050,500)
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            dims = [user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)]
+
+            self.setGeometry(10, 20, 1200, 600)
+            self.resize(dims[0],dims[1])
             self.battlewidget.show()            
 
-
             # third module
+
 
         elif msgtype == "oppIsOut":
 
@@ -518,8 +572,6 @@ class Game(QtGui.QMainWindow):
             self.battlewidget.hide()
             self.hide()
             self.selectplayerwidget.show()
-
-
 
 
         elif msgtype == "verdict" :
