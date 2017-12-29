@@ -1,5 +1,5 @@
 from PyQt4 import QtGui, QtCore
-import socket,sys,thread,json
+import socket,sys,threading,json
 
 ships = None
 name = None
@@ -21,10 +21,14 @@ class battle(QtGui.QWidget):
         super(battle, self).__init__()
         self.initUI()
         self.setMouseTracking(True)
+        self.customInit()
+
+    def customInit(self):
         self.myAttackedBlocks = []
         self.opponentAttackedBlocks = []
         self.turn = False
         self.mouseOn = [9999,9999]
+
 
     def resetMouseOn(slef) :
         self.mouseOn = [9999,9999]
@@ -187,7 +191,9 @@ class setBoats(QtGui.QWidget):
         super(setBoats, self).__init__()
         self.initUI()
         self.setMouseTracking(True)
-
+        self.myInit()
+    
+    def myInit(self):
         self.boats = [5,4,3,2]
         self.currentBoat = 0
         self.selectedBlocks = []
@@ -196,7 +202,8 @@ class setBoats(QtGui.QWidget):
 
         self.brownBoxes = []
         self.clickable = True
-        
+        self.update()
+
     def initUI(self):      
 
         self.setGeometry(50, 50, 500, 500)
@@ -274,6 +281,34 @@ class setBoats(QtGui.QWidget):
         headBoxY = headY/50
         self.updateBoxes(headBoxX, headBoxY)
 
+class SelectPlayerWidget(QtGui.QWidget):
+    def __init__(self,parent):
+        super(SelectPlayerWidget, self).__init__()
+        
+        self.parent = parent
+        self.VBox = QtGui.QVBoxLayout()
+        parent.playerlistwidget = QtGui.QListWidget()
+        self.ChallangeButton = QtGui.QPushButton("Challange")
+        self.connect(self.ChallangeButton,QtCore.SIGNAL("clicked()"),parent.sendChallenge)
+        self.VBox.addWidget(parent.playerlistwidget)
+        self.VBox.addWidget(self.ChallangeButton)
+        self.setLayout(self.VBox)
+        self.setWindowTitle("Player List")
+
+    def closeEvent(self, event):
+        # do stuff
+        global mysocket
+
+        print " < I am Out >"
+        msg = {"type":"iAmOut","data":None}
+        msg = json.dumps(msg)
+
+        mysocket.send(msg)
+
+
+        event.accept() # let the window close
+      
+
 
 class Game(QtGui.QMainWindow):
     def __init__(self,master=None):
@@ -281,12 +316,15 @@ class Game(QtGui.QMainWindow):
         self.setWindowTitle("Ba Ba BattleShip")
 
         self.createUI()
+        
+
+        self.hide()
+
 
         self.enterName()
 
+        self.selectplayerwidget.show()
 
-
-        #self.fillList()
 
     def createUI(self):
 
@@ -295,16 +333,7 @@ class Game(QtGui.QMainWindow):
         self.setCentralWidget(self.widget)
        
 
-        self.selectplayerwidget = QtGui.QWidget()
-        self.VBox = QtGui.QVBoxLayout()
-        self.playerlistwidget = QtGui.QListWidget()
-        self.ChallangeButton = QtGui.QPushButton("Challange")
-        self.connect(self.ChallangeButton,QtCore.SIGNAL("clicked()"),self.sendChallenge)
-        self.VBox.addWidget(self.playerlistwidget)
-        self.VBox.addWidget(self.ChallangeButton)
-        self.selectplayerwidget.setLayout(self.VBox)
-
-
+        self.selectplayerwidget = SelectPlayerWidget(self)
 
         self.selectBoatWidget = setBoats()        
         self.selectBoatWidget.hide()
@@ -315,14 +344,27 @@ class Game(QtGui.QMainWindow):
 
 
 
-        self.container.addWidget(self.selectplayerwidget)
+
+        #self.container.addWidget(self.selectplayerwidget)
         self.container.addWidget(self.selectBoatWidget)
         self.container.addWidget(self.battlewidget)
 
         self.widget.setLayout(self.container)
 
+    def closeEvent(self, event):
+        # do stuff
+        global mysocket
+        print " < aborting game >"
+        msg = {"type":"abortGame","data":None}
+        msg = json.dumps(msg)
 
+        mysocket.send(msg)
 
+        self.selectplayerwidget.show()
+        self.hide()
+
+        event.ignore() # let the window close
+        
         
     def enterName(self):
 
@@ -348,6 +390,8 @@ class Game(QtGui.QMainWindow):
 
     def sendChallenge(self):
         
+        global eve
+
         if self.playerlistwidget.currentItem() and self.playerlistwidget.currentItem().isSelected():
             toname = self.playerlistwidget.currentItem().text()
             #print name
@@ -356,9 +400,46 @@ class Game(QtGui.QMainWindow):
             mysocket.send(msg)
 
             print "challange request sending to server"
+
+            #d = QtGui.QDialog()
+            #d.setText("waiting for opponent...")
+            #d.show()
+            #d.exec_()
+
+
+            class customMsg(QtGui.QDialog):
+                def __init__(self,eve, parent=None):
+                    super(customMsg, self).__init__(parent)
+
+                    self.msgBox = QtGui.QMessageBox()
+
+                    self.msgBox.setText('waiting for opponent...')
+                    self.msgBox.addButton(QtGui.QMessageBox.NoButton)
+                    #msgBox.setModal(True)
+                    
+
+
+            self.waitbox = customMsg(eve)
+            self.waitbox.msgBox.open()
+            
+            print "before wait"
+            #eve.wait()
+            print "after wait"
+            #self.waitbox.accept()
+
+
+            #box =  QtGui.QMessageBox()
+            #box.setText(" waiting for response... ")
+            #box.addButton(QtGui.QMessageBox.NoButton)
+            #box.setStandardButton(QtGui.QMessageBox.NoButton)
+            #box.show()
+            #if box.exec_():
+            #    print " starting.. select Ship"
+
         else:
             msg = QtGui.QMessageBox()
             msg.setText("please select an online player")
+            msg.show()
             msg.exec_()
 
         
@@ -377,7 +458,7 @@ class Game(QtGui.QMainWindow):
             pass
 
     
-    def cpu(self,mysocket,msgtype,msgdata):
+    def cpu(self,mysocket,msgtype,msgdata,eve):
 
         global ships
         if msgtype == "playerlist":
@@ -397,7 +478,20 @@ class Game(QtGui.QMainWindow):
 
 
         elif msgtype == "startGame":
+
+
+            print "<<here>>"
+            
+            if hasattr(self, 'waitbox'):
+                #eve.set()
+                self.waitbox.msgBox.accept()
+
+
+            else:
+                "no waitbox in self"
             self.selectplayerwidget.hide()
+            self.show()
+            self.selectBoatWidget.myInit()
             self.selectBoatWidget.show()
 
         elif msgtype == "beginBattle":
@@ -405,6 +499,7 @@ class Game(QtGui.QMainWindow):
             ships = msgdata['shipData']
 
             self.selectBoatWidget.hide()
+            self.battlewidget.customInit()
             self.battlewidget.myInit()
             print self.battlewidget.get()
 
@@ -416,6 +511,16 @@ class Game(QtGui.QMainWindow):
 
 
             # third module
+
+        elif msgtype == "oppIsOut":
+
+            self.selectBoatWidget.hide()
+            self.battlewidget.hide()
+            self.hide()
+            self.selectplayerwidget.show()
+
+
+
 
         elif msgtype == "verdict" :
             print msgdata
@@ -432,7 +537,7 @@ class Game(QtGui.QMainWindow):
             print "unhandled msgtype :" + msgtype
             
 
-def listener(mysocket,game):
+def listener(mysocket,game,eve):
     while True:
         msg = mysocket.recv(1024)
         msg = json.loads(msg)
@@ -440,8 +545,22 @@ def listener(mysocket,game):
         msgtype = msg["type"]
         msgdata = msg["data"]
 
-        game.cpu(mysocket,msgtype,msgdata)
+        game.cpu(mysocket,msgtype,msgdata,eve)
 
+
+
+
+class ListenerThread(threading.Thread):
+
+    def __init__(self,mysocket,game,eve):
+        threading.Thread.__init__(self)
+        self.mysocket = mysocket
+        self.game = game
+        self.eve = eve
+
+    def run(self):
+
+        listener(self.mysocket,self.game,self.eve)
 
 if __name__ == "__main__":
 
@@ -461,8 +580,11 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     
     game = Game()
-    thread.start_new_thread(listener,(mysocket,game))
+    #thread.start_new_thread(listener,(mysocket,game))
+    eve = threading.Event()
+    listenerthread = ListenerThread(mysocket,game,eve)
+    listenerthread.start()
 
-    game.show()
+    #game.show()
     game.resize(640, 480)
     sys.exit(app.exec_())
