@@ -29,6 +29,7 @@ class Player :
     def __init__(self, socketDesc, name) :
         self.name = name
         self.socketDesc = socketDesc
+        self.isBusy = False
     #end player
 
 class Game:    
@@ -103,6 +104,21 @@ def sendMsg(msg, toclient):
     toclient.socketDesc.send(msg)
     #end sendmsg
 
+
+def sendlist():
+    onlineplayers = []
+    for each in playerlist:
+        if not playerlist[each].isBusy:
+            onlineplayers.append(each)
+    
+    print onlineplayers
+    brodmsg = {"type":"playerlist","data":onlineplayers}
+    brodmsg = json.dumps(brodmsg)
+
+    for each in playerlist:
+        if not playerlist[each].isBusy:
+            sendMsg(brodmsg,playerlist[each])
+
 def cpu(player,msgtype,msgdata):
 
     global gamebox,playerlist
@@ -148,6 +164,13 @@ def cpu(player,msgtype,msgdata):
         player1 = playerlist[data['player1']] #objeect
         player2 = playerlist[data['player2']]   #object
         
+        player1.isBusy=True
+        player2.isBusy=True
+
+
+        sendlist()
+
+
         #register new game
         game = startNewGame(player1, player2)
         gamebox[player1] = game
@@ -181,22 +204,52 @@ def cpu(player,msgtype,msgdata):
         jsonData = dictData.dumps()
         sendMsg(jsonData, challenger)
 
-    elif msgtype == 'abortGame' :
+    elif msgtype == 'iAmOut' :
         '''
         expected message format : data : {
                                             
                                             }
         '''
         
+        if player.name in playerlist:
+            del playerlist[player.name]
+
+        sendlist()
+
+        
         #send message on both sides to abort the game and return to initial stage
-        dictMsg = {
-            'type' : 'abortGame',
-            'data' : {
 
-            }
-        }
-        jsonMsg = dictMsg.dumps()
 
+    elif msgtype == "abortGame":       
+
+        oppmsg = {"type":"oppIsOut","data":None}
+        oppmsg = json.dumps(oppmsg)
+
+
+
+        if player in gamebox:
+            game = gamebox[player]
+        
+            game.player2.isBusy=False
+            game.player1.isBusy=False
+
+            if player == game.player1:
+                sendMsg(oppmsg, game.player2)
+            else:
+                sendMsg(oppmsg, game.player1)
+
+        sendlist()
+
+
+    elif msgtype == "setBoats" : #arranging done, now register my boat positions
+        '''
+        Message type : data : {
+                            coords : [[],[]]
+                        }
+        '''
+        data = msgdata
+        boatcoords = data["coords"]
+        
         game = gamebox[player]
         sendMsg(jsonMsg, game.player1)
         sendMsg(jsonMsg, game.player2)
@@ -272,7 +325,9 @@ def cpu(player,msgtype,msgdata):
 
             if player == game.player2 :
                 sendMsg(jsonData, game.player1)
-
+    else:
+        print "Unhandled MsgType..!!!"
+        
     #end cpu
 
 def registerClient(client,name):
