@@ -1,7 +1,7 @@
 import socket,thread,sys,json
 
+
 playerlist = {}
-gamebox = {}
 
 serversocket = socket.socket()
 hostname = socket.gethostname()
@@ -32,22 +32,19 @@ class Player :
     #end player
 
 class Game:    
+    shipsPlayer1 = []
+    shipsPlayer2 = []
+    attackedBLocksPlayer1 = []
+    attackedBLocksPlayer1 = []
+    
     def __init__(self, player1, player2) : #player objects
         self.player1 = player1
         self.player2 = player2
-        self.shipsPlayer1 = []
-        self.shipsPlayer2 = []
-        self.attackedBlocksPlayer1 = []
-        self.attackedBlocksPlayer2 = []
-        
 
     def checkResult(self) :
-        print reduce(lambda x,y : x+y, self.shipsPlayer1)
-        print self.attackedBlocksPlayer1
-        print "====="
-        if len(reduce(lambda x,y : x+y, self.shipsPlayer1)) == len(self.attackedBlocksPlayer1):
+        if len(self.shipsPlayer1) == len(self.attackedBLocksPlayer1):
             return self.player1 , self.player2
-        if len(reduce(lambda x,y : x+y, self.shipsPlayer2)) == len(self.attackedBlocksPlayer2):
+        if len(self.shipsPlayer2) == len(self.attackedBLocksPlayer2):
             return self.player2 , self.player1
 
         return None , None
@@ -57,13 +54,13 @@ class Game:
         theattackedmap = None
         if attacker == self.player1:
             themap = self.shipsPlayer2
-            theattackedmap = self.attackedBlocksPlayer2
+            theattackedmap = self.attackedBLocksPlayer2
         else:
             themap = self.shipsPlayer1
-            theattackedmap = self.attackedBlocksPlayer1
+            theattackedmap = self.attackedBLocksPlayer1
 
 
-        if block in reduce(lambda x,y : x+y , themap):
+        if block in themap:
             if block not in theattackedmap:
                 theattackedmap.append(block)
             else:
@@ -100,12 +97,10 @@ def startNewGame(player1, player2) :
 
 def sendMsg(msg, toclient):
 
-    toclient.socketDesc.send(msg)
+    pass
     #end sendmsg
 
 def cpu(player,msgtype,msgdata):
-
-    global gamebox,playerlist
 
     if msgtype == "register":
         """
@@ -207,28 +202,11 @@ def cpu(player,msgtype,msgdata):
                             coords : [[],[]]
                         }
         '''
-        data = msgdata
-        boatcoords = data["coords"]
+        data = json.loads(msgdata)
+        boatcoords = data[coords]
         
         game = gamebox[player]
         game.setBoats(player, boatcoords)
-
-        if len(game.shipsPlayer1) != 0 and len(game.shipsPlayer2) != 0 : #both have set their ships
-            #send begin battle message
-            dictData = {
-                'type' : 'beginBattle',
-                'data' : { 
-                    'shipData' : {
-                         game.player1.name : game.shipsPlayer1,
-                        game.player2.name : game.shipsPlayer2,
-                    },
-                    'turn' : game.player1.name
-                }
-            }
-            jsonData = json.dumps(dictData)
-
-            sendMsg(jsonData, game.player1)
-            sendMsg(jsonData, game.player2)
 
     elif msgtype == "attack":
         """
@@ -242,11 +220,10 @@ def cpu(player,msgtype,msgdata):
         game.attack(player,msgdata["coordinates"])
         
         winner , loser = game.checkResult()
-        if winner != None and loser != None :
-            print "sending verdict"
+        if winner and loser:
 
-            msgcontainerforwinner = {"type":"verdict","data":{"result":"win"}}
-            msgcontainerforloser = {"type":"verdict","data":{"result":"loose"}}
+            msgcontainerforwinner = {"type":"verdict","data":{"result:":True}}
+            msgcontainerforloser = {"type":"verdict","data":{"result:":False}}
 
             msgforwinner = json.dumps(msgcontainerforwinner)
             msgforloser = json.dumps(msgcontainerforloser)
@@ -260,9 +237,7 @@ def cpu(player,msgtype,msgdata):
         else : #send coordinates to client as well
             dictData = {
                 'type' : 'updateAttackCoords',
-                'data' : {
-                    'coordinates' : msgdata['coordinates']
-                }
+                'coordinates' : msgdata['coordinates']
             }
             jsonData = json.dumps(dictData)
 
@@ -271,33 +246,19 @@ def cpu(player,msgtype,msgdata):
                 sendMsg(jsonData, game.player2)
 
             if player == game.player2 :
-                sendMsg(jsonData, game.player1)
+                sendMsg(jsonData, game.player2)
 
     #end cpu
 
 def registerClient(client,name):
     
     """
-        -will make a new object of the Player class and will append to the playerList.
-        -to maintain the list of the online players.
+    -will make a new object of the Player class and will append to the playerList.
+    -to maintain the list of the online players.
     """
-    
     player = Player(client,name)
+    #playerlist.append(player)
     playerlist[name] = player
-    
-
-    msgdata = {"type":"playerlist","data":playerlist.keys()}
-    msg = json.dumps(msgdata)
-    
-
-    for key in playerlist:
-        print "sending to " + str(key)
-        sendMsg(msg,playerlist[key])
-    
-
-    print "new player added :) hello "
-    print  playerlist
-    
     return player
 
 def handleClient(client):
@@ -313,16 +274,12 @@ def handleClient(client):
 
     """    
     while True:
-        
-        if isinstance(client,Player):
-            data = client.socketDesc.recv(2048)
-        else:
-            data = client.recv(2048)
+        data = client.recv()
         message = json.loads(data)
         msgtype = message["type"]
         msgdata = message["data"]
         
-        if isinstance(client,Player):
+        if "name" in client:
             cpu(client,msgtype,msgdata)
         else:
 

@@ -1,0 +1,1 @@
+ In attack function - block is already attacked once.! 
