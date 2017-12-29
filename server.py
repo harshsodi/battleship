@@ -63,11 +63,17 @@ class Game:
             theattackedmap = self.attackedBLocksPlayer1
 
 
-        if block in themap:
-            if block not in theattackedmap:
-                theattackedmap.append(block)
+        removeship = None
+        for eachship in themap:
+            if block in eachship:
+                if block not in theattackedmap:
+                    theattackedmap.append(block)
+
+                    
             else:
                 log.write(" In attack function - block is already attacked once.! ")
+
+
 
 
         '''
@@ -188,17 +194,8 @@ def cpu(player,msgtype,msgdata):
         game = gamebox[player]
         sendMsg(jsonMsg, game.player1)
         sendMsg(jsonMsg, game.player2)
-        if msgtype == "register":
-        """
-        "Register":
-        -register the client to the server
-        ->data: {
-                    "name": <name of the client>
-                }
-        """
-        name = msgdata
-        return registerClient(player,name)
-   
+
+
     elif msgtype == "attack":
         """
         "msgtype":"attack":
@@ -224,7 +221,10 @@ def cpu(player,msgtype,msgdata):
 
             sendMsg(msgforwinner , winner)
             sendMsg(msgforloser , loser)
-    
+        else:
+
+
+
     #end cpu
 
 def registerClient(client,name):
@@ -236,6 +236,13 @@ def registerClient(client,name):
     player = Player(client,name)
     #playerlist.append(player)
     playerlist[name] = player
+
+    msgdata = {"type":"playerlist","data":playerlist.keys()}
+    msg = json.dumps(msgdata)
+    
+    for key,each in playerlist:
+        sendMsg(msg,each)
+    
     return player
 
 def handleClient(client):
