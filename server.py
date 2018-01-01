@@ -4,7 +4,7 @@ playerlist = {}
 gamebox = {}
 
 serversocket = socket.socket()
-hostname = socket.gethostname()
+hostname = ""
 port = 7064
 
 
@@ -13,9 +13,10 @@ log = open("log.txt","a")
 
 try:
     serversocket.bind((hostname,port))
-except:
+except Exception as e:
+    print e
     print "server could not start"
-
+    sys.exit(1)
 
 print " server running..."
 
@@ -201,7 +202,7 @@ def cpu(player,msgtype,msgdata):
                         'type' : 'challengeDeclined',
                         'data' : { }
                     }
-        jsonData = dictData.dumps()
+        jsonData = json.dumps(dictData)
         sendMsg(jsonData, challenger)
 
     elif msgtype == 'iAmOut' :
@@ -211,8 +212,14 @@ def cpu(player,msgtype,msgdata):
                                             }
         '''
         
+        print " got i am out from "+ player.name
+        player.socketDesc.close()
+
         if player.name in playerlist:
             del playerlist[player.name]
+
+
+
 
         sendlist()
 
@@ -357,10 +364,24 @@ def handleClient(client):
     while True:
         
         if isinstance(client,Player):
-            data = client.socketDesc.recv(2048)
+            try:
+                data = client.socketDesc.recv(2048)
+            except:
+                return
+            if data == "":
+                client.socketDesc.close()
+                return
         else:
             data = client.recv(2048)
-        message = json.loads(data)
+            if data == "":
+                client.close()
+                return
+
+        #data = data.data().decode('utf-8')
+        print "data : " + data
+        if not data:
+            continue
+        message = json.loads(str(data))
         msgtype = message["type"]
         msgdata = message["data"]
         
