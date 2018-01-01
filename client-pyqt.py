@@ -1,14 +1,21 @@
 from PyQt4 import QtGui, QtCore,QtNetwork
+import vlc
 import socket,sys,threading,json
 
 ships = None
 name = None
 
 def getMyShips(name) :
+    '''
+    Return the ship list of the requester
+    '''
     global ships
     return ships[name]
 
 def getOpponentShips(name) :
+    '''
+    Return the ship list of opponent of the requester
+    '''
     global ships
     for player in ships :
         if player != name :
@@ -16,14 +23,27 @@ def getOpponentShips(name) :
 
 
 class battle(QtGui.QWidget):
-
+    '''
+    The main gameplay Widget
+    '''
+    
     def __init__(self):
         super(battle, self).__init__()
         self.initUI()
         self.setMouseTracking(True)
         self.customInit()
 
+        print "init sounds"
+        self.soundhit = vlc.MediaPlayer("soundfile/hit.wav")
+        self.soundmiss = vlc.MediaPlayer("soundfile/miss.wav")
+        print "sound initialized"
+
+
     def customInit(self):
+        '''
+        To initialize the data that are dependent on
+        components not loading before the __init__ is called
+        '''
         self.myAttackedBlocks = []
         self.opponentAttackedBlocks = []
         self.turn = False
@@ -37,33 +57,51 @@ class battle(QtGui.QWidget):
         self.mouseOn = [x,y]
 
     def myInit(self):
+        '''
+        
+        '''
         global name
         self.myShips = getMyShips(name)
         self.opponentShips =getOpponentShips(name)
-        print self.myShips
-        print self.opponentShips
-
-    def initTurn(self) : 
+        
+    def initTurn(self) :
+        '''
+        Initialize the turn variable
+        '''
         self.turn = True
 
         
     def initUI(self):      
-
+        '''
+        Set default dimensions and title for the window
+        '''
         self.setGeometry(50, 50, 1050, 500)
         self.setWindowTitle('Battle captains ..!')
         self.show()
 
     def paintEvent(self, e):
+        '''
+        Update the board drawings
+        '''
         qp = QtGui.QPainter()
         qp.begin(self)
         #self.myInit()
         self.drawBoards(qp)
         qp.end()
 
-    def mapCoords(self, coords, baseX, baseY) :
-        return (coords[0]+baseX, coords[1]+baseY)
+        if not self.soundmiss.is_playing():
+            self.soundmiss.stop()
+
+        if not self.soundhit.is_playing():
+            self.soundhit.stop()
 
     def drawBoards(self, qp):
+        '''
+        handles the drawing part
+        
+        Input : painter object
+        Output : Updatation of the canvas
+        '''
         pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
         qp.setPen(pen)
         
@@ -86,6 +124,7 @@ class battle(QtGui.QWidget):
                 pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
                 qp.setPen(pen)
                 
+                #draw the attacked blocks in red
                 flag = True
                 if [x,y] in self.myAttackedBlocks :
                     qp.setBrush(QtGui.QColor(255,100,100,fade))
@@ -100,7 +139,8 @@ class battle(QtGui.QWidget):
                             break
                     
                 qp.drawRect(x*50,y*50, 50,50)
-
+                
+                #draw the ship blocks in white. Keep border black
                 pen = QtGui.QPen(QtGui.QColor(0,0,0), 2, QtCore.Qt.SolidLine)
                 qp.setPen(pen)
                 qp.setBrush(QtGui.QColor(255,255,255,fade))
@@ -112,6 +152,8 @@ class battle(QtGui.QWidget):
                     qp.setBrush(QtGui.QColor(255,100,100,fade))
                     qp.drawRect(coord[0]*50,coord[1]*50, 50,50)               
 
+        #keep the part of the current turn holder normal
+        #and other'sfaded
         fade = 255
         try :
             if self.turn :
@@ -129,12 +171,15 @@ class battle(QtGui.QWidget):
             for y in range(10) :
                 qp.setBrush(QtGui.QColor(150, 170, 255,fade))
 
+                #change the color of block on which
+                #the mouse pointer is
                 if [x+11,y] == self.mouseOn and self.turn:
                     qp.setBrush(QtGui.QColor(255,69,0,140))
                 if [x,y] in self.opponentAttackedBlocks :
                     qp.setBrush(QtGui.QColor(255,100,100,fade))
                 qp.drawRect((x+11)*50,y*50, 50,50)
         
+        #print whose turn is it currently
         if not self.turn :
             opponentsString = "OPPONENT'S"
             turnString = "TURN"
@@ -157,7 +202,7 @@ class battle(QtGui.QWidget):
 
     def mousePressEvent(self, event):
         """
-        mouse clicks events
+        Todo's when player clicks
         """
         button = event.button()
         x = event.x()/50
@@ -169,11 +214,12 @@ class battle(QtGui.QWidget):
         #self.myInit()
         qp1.drawRect((x)*50,y*50, 50,50)
         qp1.end()
-
+    
+        #if player has turn
+        #consider click as an attack
         x = x - 11
         if self.turn :
             if x in range(10) and y in range(10) :
-                print "attack on ",x,y
                 self.attackOnOpponent([x,y])
                 
                 #send message of attack to server
@@ -187,35 +233,41 @@ class battle(QtGui.QWidget):
                 mysocket.send(jsonData)
             
     def mouseMoveEvent(self, event):
+        '''
+        Handle todo's with the current mouse position
+        '''
         x = event.x()/50
         y = event.y()/50
         self.setMouseOn(x,y)
         self.update()
 
     def attackOnMe(self, coords) :
+        '''
+        Event when the client is attacked
+        '''
         print "i am attacked"
-        print self.myShips
         for ship in self.myShips :
             if coords in ship :
                 self.myAttackedBlocks.append(coords)
-            #if set(ship).issubset(set(self.myAttackedBlocks)) : #ship sunk
-             #   self.myShips.remove(ship)
-              
-              #  for coord in ship :
-               #     self.myAttackedBlocks.remove(coord)
-        print self.myAttackedBlocks
+                self.soundhit.play()
+            else:
+                self.soundmiss.play()
+
         self.turn = True
         self.update()
 
     def attackOnOpponent(self, coords) :
+        '''
+        Event when client's opponent is attacked
+        '''
         for ship in self.opponentShips :
             if coords in ship :
                 self.opponentAttackedBlocks.append(coords)
+                self.soundhit.play()
+            else:
+                self.soundmiss.play()
+
         self.turn = False
-            #if set(ship).issubset(set(self.opponentAttackedBlocks)) : #ship sunk
-             #   self.opponentShips.remove(ship)
-              #  for coord in ship :
-               #     self.opponentAttackedBlocks.remove(coord)
 
         self.update()
 
@@ -226,7 +278,9 @@ class battle(QtGui.QWidget):
 
 
 class setBoats(QtGui.QWidget):
-
+    '''
+    The widget where player arranges his ships
+    '''
     def __init__(self):
         super(setBoats, self).__init__()
         self.initUI()
@@ -234,6 +288,9 @@ class setBoats(QtGui.QWidget):
         self.myInit()
     
     def myInit(self):
+        '''
+        Handle initialization of dependent attributes
+        '''
         self.boats = [5,4,3,2]
         self.currentBoat = 0
         self.selectedBlocks = []
@@ -251,24 +308,54 @@ class setBoats(QtGui.QWidget):
         self.show()
 
     def paintEvent(self, e):
+        '''
+        The painter
+        '''
         qp = QtGui.QPainter()
         qp.begin(self)
         self.drawLines(qp)
         qp.end()
         
     def drawLines(self, qp):
+        '''
+        Handle drawing of blocks on board
+        '''
         pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
         qp.setPen(pen)
+        
+        #draw 10x10 grid
         for x in range(10) :
             for y in range(10) :
+                #if a block isn't part of arranged ship keep it blue
+                #and white otherwise
                 if (x,y) not in self.brownBoxes and (x,y) not in self.selectedBlocks :
                     qp.setBrush(QtGui.QColor(150, 170, 255))
                     qp.drawRect(x*50,y*50,50,50)
                 else :
                     qp.setBrush(QtGui.QColor(255,255,255))
                     qp.drawRect(x*50,y*50,50,50)
+                    
+        #type sensile messages to keep player informed
+        pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+        qp.setPen(pen)
+        font = qp.font()
+        font.setPointSize(15)
+        qp.setFont(font)
+        
+        if len(self.boats[self.currentBoat : ]) > 1 :
+            setShipText = "Size of ships you have : " + reduce(lambda x,y : str(x)+ ", " +str(y), self.boats[self.currentBoat : ])
+        elif len(self.boats[self.currentBoat : ]) == 1 :
+            setShipText = "Size of ships you have : " + str(self.boats[self.currentBoat : ][0])
+        else : #when player puts all his ships before his opponent, he waits
+            setShipText = "Waiting for opponent while he prepares for battle"
+            
+        qp.drawText(10,11*50, setShipText)
+        
 
     def updateBoxes(self, headBoxX, headBoxY) :
+        '''
+        Maintain the state of boats
+        '''
         self.clickable = True
         self.brownBoxes = []
         for i in range(self.boats[self.currentBoat]) :
@@ -279,7 +366,8 @@ class setBoats(QtGui.QWidget):
             if self.orientation == 1 :
                 if headBoxY+i > 9 or (headBoxX, headBoxY+i) in self.selectedBlocks:
                     self.clickable = False
-                self.brownBoxes.append((headBoxX , headBoxY+i)) 
+                self.brownBoxes.append((headBoxX , headBoxY+i))
+                
         self.update()
 
     def mousePressEvent(self, event):
@@ -287,6 +375,8 @@ class setBoats(QtGui.QWidget):
         mouse clicks events
         """
         button = event.button()
+        
+        #if it's a right click, change orientation of boats
         if button == 2 :
             if self.orientation == 0 :
                 self.orientation = 1
@@ -295,11 +385,12 @@ class setBoats(QtGui.QWidget):
             self.update()
             return
 
-        if self.clickable :
+        if self.clickable : #when user leftclicks
             self.selectedBoats.append(self.brownBoxes)
             self.selectedBlocks += self.brownBoxes
             self.currentBoat += 1
-
+        
+        #when user clicks, tell server he set a boat
         if self.currentBoat == len(self.boats) :
             dictData = {
                 'type' : 'setBoats',
@@ -312,6 +403,9 @@ class setBoats(QtGui.QWidget):
             mysocket.send(jsonData)
 
     def mouseMoveEvent(self, event):
+        '''
+        Move ships along with mouse
+        '''
         if len(self.boats) == self.currentBoat :
             return
         self.clickable = True
@@ -323,6 +417,12 @@ class setBoats(QtGui.QWidget):
 
 
 class WinLoseMsg(QtGui.QDialog):
+
+    '''
+    MessageBox for Win or Lose Message
+    '''
+
+
     def __init__(self,iswin, game,parent=None):
         super(WinLoseMsg, self).__init__(parent)
 
@@ -335,21 +435,20 @@ class WinLoseMsg(QtGui.QDialog):
             msgBox.setText('         You lose')
 
 
-
         anotherplayerbutton = QtGui.QPushButton('  Play with another player ')
         anotherplayerbutton.clicked.connect(self.anotherplayerclicked)
 
 
 
         msgBox.addButton(anotherplayerbutton, QtGui.QMessageBox.YesRole)
-        #msgBox.addButton(QtGui.QPushButton('Cancel'), QtGui.QMessageBox.RejectRole)
-        
 
         ret = msgBox.exec_()
 
 
-
     def anotherplayerclicked(self):
+        '''
+        Close the messagebox when another player accept the challenge
+        '''
         self.game.hide()
         self.game.selectplayerwidget.show()
 
@@ -394,9 +493,10 @@ class Game(QtGui.QMainWindow):
         
         self.hide()
 
-
         self.enterName()
 
+        self.startsound = vlc.MediaPlayer("soundfile/start.mp3")
+        
         self.selectplayerwidget.show()
 
 
@@ -429,7 +529,6 @@ class Game(QtGui.QMainWindow):
         self.widget.setLayout(self.container)
 
     def closeEvent(self, event):
-        # do stuff
         global mysocket
         print " < aborting game >"
         msg = {"type":"abortGame","data":None}
@@ -444,7 +543,9 @@ class Game(QtGui.QMainWindow):
         
         
     def enterName(self):
-
+        '''
+        Input Dialog for the name
+        '''
         global name
 
 
@@ -457,6 +558,9 @@ class Game(QtGui.QMainWindow):
             self.sendName()
       
     def sendName(self):
+        '''
+        Send the name when user enters the name and press button
+        '''
         global name
         msg = {"type":"register","data":name}
         msg = json.dumps(msg)
@@ -466,7 +570,9 @@ class Game(QtGui.QMainWindow):
 
 
     def sendChallenge(self):
-        
+        '''
+        send challenge message when user select the user and press button
+        '''
         
         if self.playerlistwidget.currentItem() and self.playerlistwidget.currentItem().isSelected():
             toname = self.playerlistwidget.currentItem().text()
@@ -477,12 +583,7 @@ class Game(QtGui.QMainWindow):
 
             print "challange request sending to server"
 
-            #d = QtGui.QDialog()
-            #d.setText("waiting for opponent...")
-            #d.show()
-            #d.exec_()
-
-
+            
             class customMsg(QtGui.QDialog):
                 def __init__(self, parent=None):
                     super(customMsg, self).__init__(parent)
@@ -491,27 +592,15 @@ class Game(QtGui.QMainWindow):
 
                     self.msgBox.setText('waiting for opponent...')
                     self.msgBox.addButton(QtGui.QMessageBox.NoButton)
-                    #msgBox.setModal(True)
-                    
-
-
+            
             self.waitbox = customMsg()
             self.waitbox.msgBox.open()
             
             print "before wait"
-            #eve.wait()
             print "after wait"
-            #self.waitbox.accept()
+            
 
-
-            #box =  QtGui.QMessageBox()
-            #box.setText(" waiting for response... ")
-            #box.addButton(QtGui.QMessageBox.NoButton)
-            #box.setStandardButton(QtGui.QMessageBox.NoButton)
-            #box.show()
-            #if box.exec_():
-            #    print " starting.. select Ship"
-
+            
         else:
             msg = QtGui.QMessageBox()
             msg.setText("please select an online player")
@@ -553,7 +642,9 @@ class Game(QtGui.QMainWindow):
 
         global ships
         if msgtype == "playerlist":
-            
+            '''
+            got new player list, update the listWidget
+            '''
             print "got player list"
             self.playerlist = msgdata
             self.playerlistwidget.clear()
@@ -564,22 +655,26 @@ class Game(QtGui.QMainWindow):
                     self.playerlistwidget.addItem(each)
 
         elif msgtype == "sendChallenge":
+            '''
+            got a challenge from the player
+            '''
             print "got challange from " + msgdata["from"]
             self.gotChallenge(mysocket,msgdata["from"])
 
 
         elif msgtype == "startGame":
-
-
-            print "<<here>>"
-            
+            '''
+            when challenge is accepted start the game window and start widget to get the ships
+            '''           
             if hasattr(self, 'waitbox'):
-                #eve.set()
                 self.waitbox.msgBox.accept()
 
 
             else:
                 "no waitbox in self"
+            
+
+            self.startsound.play()
             self.selectplayerwidget.hide()
             self.battlewidget.hide()
             self.show()
@@ -588,26 +683,31 @@ class Game(QtGui.QMainWindow):
             self.selectBoatWidget.show()
 
         elif msgtype == "beginBattle":
-
+            '''
+            ship is set of both players, now start the game
+            '''
+            self.startsound.stop()
             ships = msgdata['shipData']
 
             self.selectBoatWidget.hide()
             self.battlewidget.customInit()
             self.battlewidget.myInit()
             self.battlewidget.repaint()
-            print self.battlewidget.get()
-
+            
             if name == msgdata['turn'] :
                 self.battlewidget.initTurn()
 
-            self.resize(1050,500)
+            #self.resize(1050,500)
             self.battlewidget.show()            
 
 
             # third module
 
         elif msgtype == "oppIsOut":
-            print " opponent is out lol"
+            '''
+            opponent is out when user was playing a game
+            '''
+            print "opponent is out"
             self.selectBoatWidget.hide()
             self.battlewidget.hide()
             self.hide()
@@ -617,6 +717,7 @@ class Game(QtGui.QMainWindow):
 
 
         elif msgtype == "verdict" :
+
             winflag = False
             if msgdata["result"] == "win" :
                 winflag = True
@@ -677,7 +778,7 @@ class ListenerThread(QtCore.QThread):
 if __name__ == "__main__":
 
     mysocket = socket.socket()
-    host = "192.168.1.108"
+    host = socket.gethostname()
 
     port  = 7064
 
@@ -690,7 +791,6 @@ if __name__ == "__main__":
 
     print "connected"
     app = QtGui.QApplication(sys.argv)
-    
     game = Game()
     #thread.start_new_thread(listener,(mysocket,game))
     
@@ -699,5 +799,5 @@ if __name__ == "__main__":
     listenerthread.start()
 
     #game.show()
-    game.resize(640, 480)
+    game.resize(1200, 680)
     sys.exit(app.exec_())

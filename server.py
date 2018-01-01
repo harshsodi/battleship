@@ -367,6 +367,7 @@ def handleClient(client):
             try:
                 data = client.socketDesc.recv(2048)
             except:
+                print " someone closed the connection"
                 return
             if data == "":
                 client.socketDesc.close()
@@ -378,7 +379,6 @@ def handleClient(client):
                 return
 
         #data = data.data().decode('utf-8')
-        print "data : " + data
         if not data:
             continue
         message = json.loads(str(data))
