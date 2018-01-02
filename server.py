@@ -44,9 +44,9 @@ class Game:
         
 
     def checkResult(self) :
-        print reduce(lambda x,y : x+y, self.shipsPlayer1)
-        print self.attackedBlocksPlayer1
-        print "====="
+        #print reduce(lambda x,y : x+y, self.shipsPlayer1)
+        #print self.attackedBlocksPlayer1
+        #print "====="
         if len(reduce(lambda x,y : x+y, self.shipsPlayer1)) == len(self.attackedBlocksPlayer1):
             return self.player2 , self.player1
         if len(reduce(lambda x,y : x+y, self.shipsPlayer2)) == len(self.attackedBlocksPlayer2):
@@ -112,7 +112,7 @@ def sendlist():
         if not playerlist[each].isBusy:
             onlineplayers.append(each)
     
-    print onlineplayers
+    #print onlineplayers
     brodmsg = {"type":"playerlist","data":onlineplayers}
     brodmsg = json.dumps(brodmsg)
 
@@ -340,12 +340,12 @@ def registerClient(client,name):
     
 
     for key in playerlist:
-        print "sending to " + str(key)
+        #print "sending to " + str(key)
         sendMsg(msg,playerlist[key])
     
 
-    print "new player added :) hello "
-    print  playerlist
+    #print "new player added :) hello "
+    #print  playerlist
     
     return player
 
@@ -407,9 +407,6 @@ Receiver:
 
 """
 
-def printUsers() :
-    for each in playerlist :
-        print each.name
 
 while True:
     client, address = serversocket.accept()
