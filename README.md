@@ -13,7 +13,7 @@ For GUI part, we've used PyQt<bR>
 <hr>
 
 #### Gameplay
-
+'''
   ##### Step 1 :
   Run the client and enter your name to connect to the game.<Br>
  
@@ -28,3 +28,4 @@ For GUI part, we've used PyQt<bR>
   Each player attacks chance by chance.<br>
   Player will see the attacked ship blocks of opponent in red
   The first player to hit all the ship blocks wins
+'''
