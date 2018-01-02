@@ -48,9 +48,9 @@ class Game:
         print self.attackedBlocksPlayer1
         print "====="
         if len(reduce(lambda x,y : x+y, self.shipsPlayer1)) == len(self.attackedBlocksPlayer1):
-            return self.player1 , self.player2
-        if len(reduce(lambda x,y : x+y, self.shipsPlayer2)) == len(self.attackedBlocksPlayer2):
             return self.player2 , self.player1
+        if len(reduce(lambda x,y : x+y, self.shipsPlayer2)) == len(self.attackedBlocksPlayer2):
+            return self.player1 , self.player2
 
         return None , None
 
